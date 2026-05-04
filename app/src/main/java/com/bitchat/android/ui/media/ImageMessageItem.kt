@@ -93,7 +93,11 @@ fun ImageMessageItem(
                 is com.bitchat.android.model.DeliveryStatus.PartiallyDelivered -> if (st.total > 0) st.reached.toFloat() / st.total.toFloat() else 0f
                 else -> null
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+            val isSelf = message.senderPeerID == meshService.myPeerID || 
+                         message.sender == currentUserNickname ||
+                         message.sender.startsWith("$currentUserNickname#")
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start) {
                 Box {
                     if (progressFraction != null && progressFraction < 1f && message.sender == currentUserNickname) {
                         // Cyberpunk block-reveal while sending

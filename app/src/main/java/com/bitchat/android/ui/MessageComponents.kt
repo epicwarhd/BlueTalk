@@ -147,19 +147,28 @@ fun MessageItem(
     val colorScheme = MaterialTheme.colorScheme
     val timeFormatter = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     
+    // Determine if the message was sent by the current user
+    val isSelf = message.senderPeerID == meshService.myPeerID || 
+                 message.sender == currentUserNickname ||
+                 message.sender.startsWith("$currentUserNickname#")
+
     Column(
         modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = if (isSelf) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.85f) // Don't let messages take full width
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
+                horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start,
                 verticalAlignment = Alignment.Top
             ) {
-                // Provide a small end padding for own private messages so overlay doesn't cover text
-                val endPad = if (message.isPrivate && message.sender == currentUserNickname) 20.dp else 0.dp
-                // Create a modern custom layout
+                // Own private messages delivery status padding
+                val endPad = if (message.isPrivate && isSelf) 20.dp else 0.dp
+                
                 MessageTextWithClickableNicknames(
                     message = message,
                     messages = messages,
@@ -171,14 +180,12 @@ fun MessageItem(
                     onMessageLongPress = onMessageLongPress,
                     onCancelTransfer = onCancelTransfer,
                     onImageClick = onImageClick,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = endPad)
+                    modifier = Modifier.padding(end = endPad)
                 )
             }
 
-            // Delivery status for private messages (overlay, non-displacing)
-            if (message.isPrivate && message.sender == currentUserNickname) {
+            // Delivery status for private messages (overlay)
+            if (message.isPrivate && isSelf) {
                 message.deliveryStatus?.let { status ->
                     Box(
                         modifier = Modifier
@@ -298,7 +305,11 @@ fun MessageItem(
                 null
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+            val isSelf = message.senderPeerID == meshService.myPeerID || 
+                         message.sender == currentUserNickname ||
+                         message.sender.startsWith("$currentUserNickname#")
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start) {
                 Box {
                     if (packet != null) {
                         if (overrideProgress != null) {
@@ -342,121 +353,76 @@ fun MessageItem(
         return
     }
 
-    // Check if this message should be animated during PoW mining
-    val shouldAnimate = shouldAnimateMessage(message.id)
+    // Normal message display
+    val annotatedText = formatMessageAsAnnotatedString(
+        message = message,
+        currentUserNickname = currentUserNickname,
+        meshService = meshService,
+        colorScheme = colorScheme,
+        timeFormatter = timeFormatter
+    )
     
-    // If animation is needed, use the matrix animation component for content only
-    if (shouldAnimate) {
-        MessageWithMatrixAnimation(
-            message = message,
-            messages = messages,
-            currentUserNickname = currentUserNickname,
-            meshService = meshService,
-            colorScheme = colorScheme,
-            timeFormatter = timeFormatter,
-            onNicknameClick = onNicknameClick,
-            onMessageLongPress = onMessageLongPress,
-            onImageClick = onImageClick,
-            modifier = modifier
-        )
-    } else {
-        // Normal message display
-        val annotatedText = formatMessageAsAnnotatedString(
-            message = message,
-            currentUserNickname = currentUserNickname,
-            meshService = meshService,
-            colorScheme = colorScheme,
-            timeFormatter = timeFormatter
-        )
-        
-        // Check if this message was sent by self to avoid click interactions on own nickname
-        val isSelf = message.senderPeerID == meshService.myPeerID || 
-                     message.sender == currentUserNickname ||
-                     message.sender.startsWith("$currentUserNickname#")
-        
-        val haptic = LocalHapticFeedback.current
-        val context = LocalContext.current
-        var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-        Text(
-            text = annotatedText,
-            modifier = modifier.pointerInput(message) {
-                detectTapGestures(
-                    onTap = { position ->
-                        val layout = textLayoutResult ?: return@detectTapGestures
-                        val offset = layout.getOffsetForPosition(position)
-                        // Nickname click only when not self
-                        if (!isSelf && onNicknameClick != null) {
-                            val nicknameAnnotations = annotatedText.getStringAnnotations(
-                                tag = "nickname_click",
-                                start = offset,
-                                end = offset
-                            )
-                            if (nicknameAnnotations.isNotEmpty()) {
-                                val nickname = nicknameAnnotations.first().item
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onNicknameClick.invoke(nickname)
-                                return@detectTapGestures
-                            }
-                        }
-                        // Geohash teleport (all messages)
-                        val geohashAnnotations = annotatedText.getStringAnnotations(
-                            tag = "geohash_click",
+    // Check if this message was sent by self to avoid click interactions on own nickname
+    val isSelf = message.senderPeerID == meshService.myPeerID || 
+                 message.sender == currentUserNickname ||
+                 message.sender.startsWith("$currentUserNickname#")
+    
+    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    Text(
+        text = annotatedText,
+        modifier = modifier.pointerInput(message) {
+            detectTapGestures(
+                onTap = { position ->
+                    val layout = textLayoutResult ?: return@detectTapGestures
+                    val offset = layout.getOffsetForPosition(position)
+                    // Nickname click only when not self
+                    if (!isSelf && onNicknameClick != null) {
+                        val nicknameAnnotations = annotatedText.getStringAnnotations(
+                            tag = "nickname_click",
                             start = offset,
                             end = offset
                         )
-                        if (geohashAnnotations.isNotEmpty()) {
-                            val geohash = geohashAnnotations.first().item
-                            try {
-                                val locationManager = com.bitchat.android.geohash.LocationChannelManager.getInstance(
-                                    context
-                                )
-                                val level = when (geohash.length) {
-                                    in 0..2 -> com.bitchat.android.geohash.GeohashChannelLevel.REGION
-                                    in 3..4 -> com.bitchat.android.geohash.GeohashChannelLevel.PROVINCE
-                                    5 -> com.bitchat.android.geohash.GeohashChannelLevel.CITY
-                                    6 -> com.bitchat.android.geohash.GeohashChannelLevel.NEIGHBORHOOD
-                                    else -> com.bitchat.android.geohash.GeohashChannelLevel.BLOCK
-                                }
-                                val channel = com.bitchat.android.geohash.GeohashChannel(level, geohash.lowercase())
-                                locationManager.setTeleported(true)
-                                locationManager.select(com.bitchat.android.geohash.ChannelID.Location(channel))
-                            } catch (_: Exception) { }
+                        if (nicknameAnnotations.isNotEmpty()) {
+                            val nickname = nicknameAnnotations.first().item
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onNicknameClick.invoke(nickname)
                             return@detectTapGestures
                         }
-                        // URL open (all messages)
-                        val urlAnnotations = annotatedText.getStringAnnotations(
-                            tag = "url_click",
-                            start = offset,
-                            end = offset
-                        )
-                        if (urlAnnotations.isNotEmpty()) {
-                            val raw = urlAnnotations.first().item
-                            val resolved = if (raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)) raw else "https://$raw"
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(resolved))
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(intent)
-                            } catch (_: Exception) { }
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            return@detectTapGestures
-                        }
-                    },
-                    onLongPress = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onMessageLongPress?.invoke(message)
                     }
-                )
-            },
-            fontFamily = FontFamily.Default,
-            softWrap = true,
-            overflow = TextOverflow.Visible,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = colorScheme.onSurface
-            ),
-            onTextLayout = { result -> textLayoutResult = result }
-        )
-    }
+                    // URL open (all messages)
+                    val urlAnnotations = annotatedText.getStringAnnotations(
+                        tag = "url_click",
+                        start = offset,
+                        end = offset
+                    )
+                    if (urlAnnotations.isNotEmpty()) {
+                        val raw = urlAnnotations.first().item
+                        val resolved = if (raw.startsWith("http://", ignoreCase = true) || raw.startsWith("https://", ignoreCase = true)) raw else "https://$raw"
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(resolved))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } catch (_: Exception) { }
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        return@detectTapGestures
+                    }
+                },
+                onLongPress = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onMessageLongPress?.invoke(message)
+                }
+            )
+        },
+        fontFamily = FontFamily.Default,
+        softWrap = true,
+        overflow = TextOverflow.Visible,
+        style = MaterialTheme.typography.bodyMedium.copy(
+            color = colorScheme.onSurface
+        ),
+        onTextLayout = { result -> textLayoutResult = result }
+    )
 }
 
 @Composable

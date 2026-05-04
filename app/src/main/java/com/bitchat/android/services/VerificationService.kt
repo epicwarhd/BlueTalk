@@ -28,7 +28,6 @@ object VerificationService {
         val v: Int,
         val noiseKeyHex: String,
         val signKeyHex: String,
-        val npub: String?,
         val nickname: String,
         val ts: Long,
         val nonceB64: String,
@@ -48,7 +47,6 @@ object VerificationService {
             appendField(v.toString())
             appendField(noiseKeyHex.lowercase())
             appendField(signKeyHex.lowercase())
-            appendField(npub ?: "")
             appendField(nickname)
             appendField(ts.toString())
             appendField(nonceB64)
@@ -66,9 +64,6 @@ object VerificationService {
                 .appendQueryParameter("ts", ts.toString())
                 .appendQueryParameter("nonce", nonceB64)
                 .appendQueryParameter("sig", sigHex)
-            if (npub != null) {
-                builder.appendQueryParameter("npub", npub)
-            }
             return builder.build().toString()
         }
 
@@ -86,13 +81,11 @@ object VerificationService {
                 val ts = tsStr.toLongOrNull() ?: return null
                 val nonce = uri.getQueryParameter("nonce") ?: return null
                 val sig = uri.getQueryParameter("sig") ?: return null
-                val npub = uri.getQueryParameter("npub")
 
                 return VerificationQR(
                     v = v,
                     noiseKeyHex = noise,
                     signKeyHex = sign,
-                    npub = npub,
                     nickname = nick,
                     ts = ts,
                     nonceB64 = nonce,
@@ -102,10 +95,10 @@ object VerificationService {
         }
     }
 
-    fun buildMyQRString(nickname: String, npub: String?): String? {
+    fun buildMyQRString(nickname: String): String? {
         val service = encryptionServiceRef?.get() ?: return null
         val cache = Cache.last
-        if (cache != null && cache.nickname == nickname && cache.npub == npub) {
+        if (cache != null && cache.nickname == nickname) {
             if (System.currentTimeMillis() - cache.builtAtMs < 60_000L) {
                 return cache.value
             }
@@ -125,7 +118,6 @@ object VerificationService {
             v = 1,
             noiseKeyHex = noiseKey,
             signKeyHex = signKey,
-            npub = npub,
             nickname = nickname,
             ts = ts,
             nonceB64 = nonceB64,
@@ -135,7 +127,7 @@ object VerificationService {
         val signature = service.signData(payload.canonicalBytes()) ?: return null
         val signed = payload.copy(sigHex = signature.hexEncodedString())
         val out = signed.toUrlString()
-        Cache.last = CacheEntry(nickname, npub, System.currentTimeMillis(), out)
+        Cache.last = CacheEntry(nickname, System.currentTimeMillis(), out)
         return out
     }
 
@@ -283,7 +275,6 @@ object VerificationService {
 
     private data class CacheEntry(
         val nickname: String,
-        val npub: String?,
         val builtAtMs: Long,
         val value: String
     )

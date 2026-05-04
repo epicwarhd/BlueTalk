@@ -30,16 +30,11 @@ import com.bitchat.android.core.ui.component.sheet.BitchatBottomSheet
 import com.bitchat.android.core.ui.component.sheet.BitchatSheetCenterTopBar
 import com.bitchat.android.core.ui.component.sheet.BitchatSheetTitle
 import com.bitchat.android.core.ui.component.sheet.BitchatSheetTopBar
-import com.bitchat.android.geohash.ChannelID
-import com.bitchat.android.ui.theme.BASE_FONT_SIZE
-import com.bitchat.android.nostr.GeohashAliasRegistry
-import com.bitchat.android.nostr.GeohashConversationRegistry
 import com.bitchat.android.ui.theme.BitchatTheme
 
 
 /**
- * Sheet components for ChatScreen
- * Extracted from ChatScreen.kt for better organization
+ * Sheet components for ChatScreen - mesh-only version
  */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +56,6 @@ fun MeshPeerListSheet(
     val unreadChannelMessages by viewModel.unreadChannelMessages.collectAsStateWithLifecycle()
     val peerNicknames by viewModel.peerNicknames.collectAsStateWithLifecycle()
     val peerRSSI by viewModel.peerRSSI.collectAsStateWithLifecycle()
-    val selectedLocationChannel by viewModel.selectedLocationChannel.collectAsStateWithLifecycle()
 
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
@@ -90,7 +84,6 @@ fun MeshPeerListSheet(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(top = 72.dp, bottom = 48.dp)
                 ) {
-                    // Channels section
                     if (joinedChannels.isNotEmpty()) {
                         item(key = "channels_header") {
                             SectionHeader(text = stringResource(id = R.string.channels))
@@ -129,55 +122,40 @@ fun MeshPeerListSheet(
                         }
                     }
 
-                    // People section
                     item(key = "people_section") {
-                        when (selectedLocationChannel) {
-                            is ChannelID.Location -> {
-                                GeohashPeopleList(
-                                    viewModel = viewModel,
-                                    onTapPerson = onDismiss
-                                )
-                            }
-
-                            else -> {
-                                PeopleSection(
-                                    modifier = Modifier.padding(top = if (joinedChannels.isNotEmpty()) 24.dp else 0.dp),
-                                    connectedPeers = connectedPeers,
-                                    peerNicknames = peerNicknames,
-                                    peerRSSI = peerRSSI,
-                                    nickname = nickname,
-                                    colorScheme = colorScheme,
-                                    selectedPrivatePeer = selectedPrivatePeer,
-                                    viewModel = viewModel,
-                                     onPrivateChatStart = { peerID ->
-                                         viewModel.showPrivateChatSheet(peerID)
-                                         onDismiss()
-                                     }
-                                )
-                            }
-                        }
+                        PeopleSection(
+                            modifier = Modifier.padding(top = if (joinedChannels.isNotEmpty()) 24.dp else 0.dp),
+                            connectedPeers = connectedPeers,
+                            peerNicknames = peerNicknames,
+                            peerRSSI = peerRSSI,
+                            nickname = nickname,
+                            colorScheme = colorScheme,
+                            selectedPrivatePeer = selectedPrivatePeer,
+                            viewModel = viewModel,
+                                onPrivateChatStart = { peerID ->
+                                    viewModel.showPrivateChatSheet(peerID)
+                                    onDismiss()
+                                }
+                        )
                     }
                 }
 
-                // TopBar
                 BitchatSheetTopBar(
                     title = {
                         BitchatSheetTitle(text = stringResource(id = R.string.your_network))
                     },
                     backgroundAlpha = topBarAlpha,
                     actions = {
-                        if (selectedLocationChannel !is ChannelID.Location) {
-                            IconButton(
-                                onClick = onShowVerification,
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.QrCode,
-                                    contentDescription = stringResource(R.string.verify_title),
-                                    tint = colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                        IconButton(
+                            onClick = onShowVerification,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.QrCode,
+                                contentDescription = stringResource(R.string.verify_title),
+                                tint = colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                     },
                     onClose = onDismiss,
@@ -321,12 +299,6 @@ fun PeopleSection(
             }
         }
 
-        val noiseHexByPeerID: Map<String, String> = connectedPeers.associateWith { pid ->
-            try {
-                viewModel.meshService.getPeerInfo(pid)?.noisePublicKey?.joinToString("") { b -> "%02x".format(b) }
-            } catch (_: Exception) { null }
-        }.filterValues { it != null }.mapValues { it.value!! }
-
         val sortedPeers = connectedPeers.sortedWith(
             compareBy<String> { !hasUnreadPrivateMessages.contains(it) }
             .thenByDescending { privateChats[it]?.maxByOrNull { msg -> msg.timestamp }?.timestamp?.time ?: 0L }
@@ -334,8 +306,6 @@ fun PeopleSection(
             .thenBy { (if (it == nickname) "You" else (peerNicknames[it] ?: it)).lowercase() }
         )
         
-        val hex64Regex = Regex("^[0-9a-fA-F]{64}$")
-
         fun computeDisplayNameForPeerId(key: String): String {
             return if (key == nickname) "You" else (peerNicknames[key] ?: (privateChats[key]?.lastOrNull()?.sender ?: key.take(12)))
         }
@@ -351,39 +321,17 @@ fun PeopleSection(
         val offlineFavorites = com.bitchat.android.favorites.FavoritesPersistenceService.shared.getOurFavorites()
         offlineFavorites.forEach { fav ->
             val favPeerID = fav.peerNoisePublicKey.joinToString("") { b -> "%02x".format(b) }
-            val isMappedToConnected = noiseHexByPeerID.values.any { it.equals(favPeerID, ignoreCase = true) }
-            if (!isMappedToConnected) {
-                val dn = peerNicknames[favPeerID] ?: fav.peerNickname
-                val (b, _) = splitSuffix(dn)
-                if (b != "You") baseNameCounts[b] = (baseNameCounts[b] ?: 0) + 1
-            }
+            val dn = peerNicknames[favPeerID] ?: fav.peerNickname
+            val (b, _) = splitSuffix(dn)
+            if (b != "You") baseNameCounts[b] = (baseNameCounts[b] ?: 0) + 1
         }
-
-        privateChats.keys
-            .filter { key ->
-                (key.startsWith("nostr_") || hex64Regex.matches(key)) &&
-                        !connectedPeers.contains(key) &&
-                        !noiseHexByPeerID.values.any { it.equals(key, ignoreCase = true) }
-            }
-            .forEach { convKey ->
-                val dn = peerNicknames[convKey] ?: (privateChats[convKey]?.lastOrNull()?.sender ?: convKey.take(12))
-                val (b, _) = splitSuffix(dn)
-                if (b != "You") baseNameCounts[b] = (baseNameCounts[b] ?: 0) + 1
-            }
 
         sortedPeers.forEach { peerID ->
             val isFavorite = peerFavoriteStates[peerID] ?: false
             val isVerified = peerVerifiedStates[peerID] ?: false
 
-            val noiseHex = noiseHexByPeerID[peerID]
-            val meshUnread = hasUnreadPrivateMessages.contains(peerID)
-            val nostrUnread = if (noiseHex != null) hasUnreadPrivateMessages.contains(noiseHex) else false
-            val combinedHasUnread = meshUnread || nostrUnread
-            val combinedUnreadCount = (
-                privateChats[peerID]?.count { msg -> msg.sender != nickname && meshUnread } ?: 0
-            ) + (
-                if (noiseHex != null) privateChats[noiseHex]?.count { msg -> msg.sender != nickname && nostrUnread } ?: 0 else 0
-            )
+            val combinedHasUnread = hasUnreadPrivateMessages.contains(peerID)
+            val combinedUnreadCount = privateChats[peerID]?.count { msg -> msg.sender != nickname && combinedHasUnread } ?: 0
 
             val displayName = if (peerID == nickname) "You" else (peerNicknames[peerID] ?: (privateChats[peerID]?.lastOrNull()?.sender ?: peerID.take(12)))
             val (bName, _) = splitSuffix(displayName)
@@ -406,60 +354,38 @@ fun PeopleSection(
                     viewModel.toggleFavorite(peerID) 
                 },
                 unreadCount = if (combinedUnreadCount > 0) combinedUnreadCount else if (combinedHasUnread) 1 else 0,
-                showNostrGlobe = false,
                 showHashSuffix = showHash
             )
         }
 
         offlineFavorites.forEach { fav ->
             val favPeerID = fav.peerNoisePublicKey.joinToString("") { b -> "%02x".format(b) }
-            val isMappedToConnected = noiseHexByPeerID.values.any { it.equals(favPeerID, ignoreCase = true) }
-            if (isMappedToConnected) return@forEach
+            if (connectedPeers.contains(favPeerID)) return@forEach
 
-            val nostrConvKey: String? = try {
-                val npubOrHex = com.bitchat.android.favorites.FavoritesPersistenceService.shared.findNostrPubkey(fav.peerNoisePublicKey)
-                if (npubOrHex != null) {
-                    val hex = if (npubOrHex.startsWith("npub")) {
-                        val (hrp, data) = com.bitchat.android.nostr.Bech32.decode(npubOrHex)
-                        if (hrp == "npub") data.joinToString("") { "%02x".format(it) } else null
-                    } else {
-                        npubOrHex.lowercase()
-                    }
-                    hex?.let { "nostr_${it.take(16)}" }
-                } else null
-            } catch (_: Exception) { null }
-
-            val hasUnread = hasUnreadPrivateMessages.contains(favPeerID) || (nostrConvKey != null && hasUnreadPrivateMessages.contains(nostrConvKey))
-
-            val mappedConnectedPeerID = noiseHexByPeerID.entries.firstOrNull { it.value.equals(favPeerID, ignoreCase = true) }?.key
+            val hasUnread = hasUnreadPrivateMessages.contains(favPeerID)
             val dn = peerNicknames[favPeerID] ?: fav.peerNickname
             val (bName, _) = splitSuffix(dn)
             val showHash = (baseNameCounts[bName] ?: 0) > 1
 
             val isVerified = viewModel.isNoisePublicKeyVerified(fav.peerNoisePublicKey, verifiedFingerprints)
 
-            val unreadCount = (
-                privateChats[favPeerID]?.count { msg -> msg.sender != nickname && hasUnreadPrivateMessages.contains(favPeerID) } ?: 0
-            ) + (
-                if (nostrConvKey != null) privateChats[nostrConvKey]?.count { msg -> msg.sender != nickname && hasUnreadPrivateMessages.contains(nostrConvKey) } ?: 0 else 0
-            )
+            val unreadCount = privateChats[favPeerID]?.count { msg -> msg.sender != nickname && hasUnreadPrivateMessages.contains(favPeerID) } ?: 0
 
             PeerItem(
                 peerID = favPeerID,
                 displayName = dn,
                 isDirect = false,
-                isSelected = (mappedConnectedPeerID ?: favPeerID) == selectedPrivatePeer,
+                isSelected = favPeerID == selectedPrivatePeer,
                 isFavorite = true,
                 isVerified = isVerified,
                 hasUnreadDM = hasUnread,
                 colorScheme = colorScheme,
                 viewModel = viewModel,
-                onItemClick = { onPrivateChatStart(mappedConnectedPeerID ?: favPeerID) },
+                onItemClick = { onPrivateChatStart(favPeerID) },
                 onToggleFavorite = { 
                     viewModel.toggleFavorite(favPeerID)
                 },
                 unreadCount = if (unreadCount > 0) unreadCount else if (hasUnread) 1 else 0,
-                showNostrGlobe = (fav.isMutual && fav.peerNostrPublicKey != null),
                 showHashSuffix = showHash
             )
         }
@@ -480,7 +406,6 @@ private fun PeerItem(
     onItemClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     unreadCount: Int = 0,
-    showNostrGlobe: Boolean = false,
     showHashSuffix: Boolean = true
 ) {
     val currentNickname by viewModel.nickname.collectAsStateWithLifecycle()
@@ -517,18 +442,10 @@ private fun PeerItem(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Connection/status indicator
                 if (hasUnreadDM) {
                     Icon(
                         imageVector = Icons.Filled.Email,
                         contentDescription = stringResource(R.string.cd_unread_message),
-                        modifier = Modifier.size(18.dp),
-                        tint = colorScheme.secondary
-                    )
-                } else if (showNostrGlobe) {
-                    Icon(
-                        imageVector = Icons.Filled.Public,
-                        contentDescription = stringResource(R.string.cd_reachable_via_nostr),
                         modifier = Modifier.size(18.dp),
                         tint = colorScheme.secondary
                     )
@@ -548,7 +465,6 @@ private fun PeerItem(
                     )
                 }
 
-                // Display name
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = baseName,
@@ -646,22 +562,7 @@ fun PrivateChatSheet(
         viewModel.startPrivateChat(peerID)
     }
 
-    val isNostrPeer = peerID.startsWith("nostr_") || peerID.startsWith("nostr:")
-
-    val titleText = remember(peerID, peerNicknames) {
-        if (isNostrPeer) {
-            val gh = GeohashConversationRegistry.get(peerID) ?: "geohash"
-            val fullPubkey = GeohashAliasRegistry.get(peerID) ?: ""
-            val name = if (fullPubkey.isNotEmpty()) {
-                viewModel.geohashViewModel.displayNameForGeohashConversation(fullPubkey, gh)
-            } else {
-                peerNicknames[peerID] ?: "unknown"
-            }
-            "#$gh/@$name"
-        } else {
-            peerNicknames[peerID] ?: peerID.take(12)
-        }
-    }
+    val titleText = peerNicknames[peerID] ?: peerID.take(12)
 
     val messages = privateChats[peerID] ?: emptyList()
     val isDirect = peerDirectMap[peerID] == true
@@ -676,11 +577,7 @@ fun PrivateChatSheet(
         viewModel.isPeerVerified(peerID, verifiedFingerprints)
     }
 
-    val securityModifier = if (!isNostrPeer) {
-        Modifier.clickable { viewModel.showSecurityVerificationSheet() }
-    } else {
-        Modifier
-    }
+    val securityModifier = Modifier.clickable { viewModel.showSecurityVerificationSheet() }
 
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
@@ -796,13 +693,6 @@ fun PrivateChatSheet(
                                     modifier = Modifier.size(16.dp),
                                     tint = colorScheme.primary
                                 )
-                            } else if (isNostrPeer) {
-                                Icon(
-                                    imageVector = Icons.Filled.Public,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = colorScheme.secondary
-                                )
                             }
 
                             Text(
@@ -818,12 +708,10 @@ fun PrivateChatSheet(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.then(securityModifier)
                             ) {
-                                if (!isNostrPeer) {
-                                    NoiseSessionIcon(
-                                        sessionState = sessionState,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                                NoiseSessionIcon(
+                                    sessionState = sessionState,
+                                    modifier = Modifier.size(16.dp)
+                                )
 
                                 if (isVerified) {
                                     Spacer(modifier = Modifier.width(4.dp))

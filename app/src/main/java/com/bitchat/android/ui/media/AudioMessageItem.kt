@@ -77,7 +77,11 @@ fun AudioMessageItem(
             onTextLayout = { headerLayout = it }
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        val isSelf = message.senderPeerID == meshService.myPeerID || 
+                     message.sender == currentUserNickname ||
+                     message.sender.startsWith("$currentUserNickname#")
+
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = if (isSelf) Arrangement.End else Arrangement.Start) {
             VoiceNotePlayer(
                 path = path,
                 progressOverride = overrideProgress,

@@ -1,9 +1,7 @@
 package com.bitchat.android.ui
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -14,6 +12,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,9 +31,8 @@ import com.bitchat.android.core.ui.component.sheet.BitchatBottomSheet
 import com.bitchat.android.net.ArtiTorManager
 import com.bitchat.android.net.TorMode
 import com.bitchat.android.net.TorPreferenceManager
-import com.bitchat.android.nostr.NostrProofOfWork
-import com.bitchat.android.nostr.PoWPreferenceManager
 import com.bitchat.android.ui.theme.BitchatTheme
+import androidx.compose.foundation.BorderStroke
 
 /**
  * Feature row for displaying app capabilities
@@ -139,7 +137,7 @@ private fun SettingsToggleRow(
             modifier = Modifier.size(24.dp)
         )
         
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         
         Column(
             modifier = Modifier.weight(1f),
@@ -257,21 +255,12 @@ fun AboutSheet(
 
                     // Features Section
                     item(key = "features") {
-                        SettingsGroup(title = stringResource(R.string.permissions_header).uppercase()) {
+                        SettingsGroup(title = "MESH NETWORK") {
                             Column {
                                 FeatureRow(
                                     icon = Icons.Default.Bluetooth,
                                     title = stringResource(R.string.about_offline_mesh_title),
                                     subtitle = stringResource(R.string.about_offline_mesh_desc)
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 56.dp),
-                                    color = colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                                FeatureRow(
-                                    icon = Icons.Default.Public,
-                                    title = stringResource(R.string.about_online_geohash_title),
-                                    subtitle = stringResource(R.string.about_online_geohash_desc)
                                 )
                                 HorizontalDivider(
                                     modifier = Modifier.padding(start = 56.dp),
@@ -320,8 +309,6 @@ fun AboutSheet(
 
                     // Settings Section
                     item(key = "settings") {
-                        LaunchedEffect(Unit) { PoWPreferenceManager.init(context) }
-                        val powEnabled by PoWPreferenceManager.powEnabled.collectAsState()
                         var backgroundEnabled by remember { mutableStateOf(com.bitchat.android.service.MeshServicePreferences.isBackgroundEnabled(true)) }
                         val torMode = remember { mutableStateOf(TorPreferenceManager.get(context)) }
                         val torProvider = remember { ArtiTorManager.getInstance() }
@@ -344,19 +331,6 @@ fun AboutSheet(
                                             com.bitchat.android.service.MeshForegroundService.start(context)
                                         }
                                     }
-                                )
-                                
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 56.dp),
-                                    color = colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                                
-                                SettingsToggleRow(
-                                    icon = Icons.Default.Speed,
-                                    title = stringResource(R.string.about_pow),
-                                    subtitle = stringResource(R.string.about_pow_tip),
-                                    checked = powEnabled,
-                                    onCheckedChange = { PoWPreferenceManager.setPowEnabled(it) }
                                 )
                                 
                                 HorizontalDivider(
@@ -398,59 +372,6 @@ fun AboutSheet(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = colorScheme.error,
                                         modifier = Modifier.padding(start = 56.dp, bottom = 12.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // PoW Difficulty Slider
-                    item(key = "pow_slider") {
-                        val powEnabled by PoWPreferenceManager.powEnabled.collectAsState()
-                        val powDifficulty by PoWPreferenceManager.powDifficulty.collectAsState()
-                        
-                        if (powEnabled) {
-                            SettingsGroup {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Mining Difficulty",
-                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = colorScheme.onSurface
-                                        )
-                                        Badge(
-                                            containerColor = colorScheme.primaryContainer,
-                                            contentColor = colorScheme.onPrimaryContainer
-                                        ) {
-                                            Text(
-                                                text = "$powDifficulty bits",
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
-                                    
-                                    Slider(
-                                        value = powDifficulty.toFloat(),
-                                        onValueChange = { PoWPreferenceManager.setPowDifficulty(it.toInt()) },
-                                        valueRange = 0f..32f,
-                                        steps = 31,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = colorScheme.primary,
-                                            activeTrackColor = colorScheme.primary
-                                        )
-                                    )
-                                    
-                                    Text(
-                                        text = "${NostrProofOfWork.estimateMiningTime(powDifficulty)} estimate",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -553,34 +474,6 @@ fun AboutSheet(
     }
 }
 
-@Composable
-private fun SettingsGroup(
-    title: String? = null,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-        if (title != null) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    letterSpacing = 1.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-            )
-        }
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, colorScheme.outlineVariant.copy(alpha = 0.3f)),
-            content = content
-        )
-    }
-}
-
 /**
  * Password prompt dialog
  */
@@ -595,7 +488,7 @@ fun PasswordPromptDialog(
 ) {
     if (show && channelName != null) {
         val colorScheme = MaterialTheme.colorScheme
-        
+
         AlertDialog(
             onDismissRequest = onDismiss,
             title = {
@@ -612,7 +505,7 @@ fun PasswordPromptDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         color = colorScheme.onSurfaceVariant
                     )
-                    
+
                     OutlinedTextField(
                         value = passwordInput,
                         onValueChange = onPasswordChange,
@@ -647,22 +540,30 @@ fun PasswordPromptDialog(
     }
 }
 
-@Preview(showBackground = true, name = "About Sheet - Light")
 @Composable
-fun AboutSheetLightPreview() {
-    BitchatTheme(darkTheme = false) {
-        Surface {
-            AboutSheet(isPresented = true, onDismiss = {})
+private fun SettingsGroup(
+    title: String? = null,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        if (title != null) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+            )
         }
-    }
-}
-
-@Preview(showBackground = true, name = "About Sheet - Dark")
-@Composable
-fun AboutSheetDarkPreview() {
-    BitchatTheme(darkTheme = true) {
-        Surface {
-            AboutSheet(isPresented = true, onDismiss = {})
-        }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, colorScheme.outlineVariant.copy(alpha = 0.3f)),
+            content = content
+        )
     }
 }

@@ -91,20 +91,11 @@ fun ChatUserSheet(
                                 subtitle = stringResource(R.string.action_private_message_subtitle),
                                 titleColor = colorScheme.secondary,
                                 onClick = {
-                                    val selectedLocationChannel = viewModel.selectedLocationChannel.value
-                                    if (selectedLocationChannel is com.bitchat.android.geohash.ChannelID.Location) {
-                                        if (selectedMessage?.senderPeerID?.startsWith("nostr:") == true) {
-                                            val shortId = selectedMessage.senderPeerID!!.substring(6)
-                                            viewModel.startGeohashDMByShortId(shortId)
-                                        } else {
-                                            viewModel.startGeohashDMByNickname(targetNickname)
-                                        }
-                                    } else {
-                                        val peerID = selectedMessage?.senderPeerID ?: viewModel.getPeerIDForNickname(targetNickname)
-                                        if (peerID != null) {
-                                            viewModel.showPrivateChatSheet(peerID)
-                                        }
+                                    val peerID = selectedMessage?.senderPeerID ?: viewModel.getPeerIDForNickname(targetNickname)
+                                    if (peerID != null) {
+                                        viewModel.showPrivateChatSheet(peerID)
                                     }
+
                                     onDismiss()
                                 }
                             )
@@ -143,12 +134,7 @@ fun ChatUserSheet(
                                 subtitle = stringResource(R.string.action_block_subtitle),
                                 titleColor = colorScheme.error,
                                 onClick = {
-                                    val selectedLocationChannel = viewModel.selectedLocationChannel.value
-                                    if (selectedLocationChannel is com.bitchat.android.geohash.ChannelID.Location) {
-                                        viewModel.blockUserInGeohash(targetNickname)
-                                    } else {
-                                        viewModel.sendMessage("/block $targetNickname")
-                                    }
+                                    viewModel.sendMessage("/block $targetNickname")
                                     onDismiss()
                                 }
                             )

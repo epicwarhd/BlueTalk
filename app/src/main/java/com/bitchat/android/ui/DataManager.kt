@@ -10,11 +10,11 @@ import kotlin.random.Random
  * Handles data persistence operations for the chat system
  */
 class DataManager(private val context: Context) {
-    
+
     companion object {
         private const val TAG = "DataManager"
     }
-    
+
     private val prefs: SharedPreferences = context.getSharedPreferences("bitchat_prefs", Context.MODE_PRIVATE)
     private val gson = Gson()
     
@@ -45,30 +45,30 @@ class DataManager(private val context: Context) {
     fun saveNickname(nickname: String) {
         prefs.edit().putString("nickname", nickname).apply()
     }
-    
+
     // MARK: - Geohash Channel Persistence
-    
+
     fun loadLastGeohashChannel(): String? {
         return prefs.getString("last_geohash_channel", null)
     }
-    
+
     fun saveLastGeohashChannel(channelData: String) {
         prefs.edit().putString("last_geohash_channel", channelData).apply()
         Log.d(TAG, "Saved last geohash channel: $channelData")
     }
-    
+
     fun clearLastGeohashChannel() {
         prefs.edit().remove("last_geohash_channel").apply()
         Log.d(TAG, "Cleared last geohash channel")
     }
 
     // MARK: - Location Services State
-    
+
     fun saveLocationServicesEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("location_services_enabled", enabled).apply()
         Log.d(TAG, "Saved location services enabled state: $enabled")
     }
-    
+
     fun isLocationServicesEnabled(): Boolean {
         return prefs.getBoolean("location_services_enabled", true) // Default to enabled
     }
@@ -78,10 +78,10 @@ class DataManager(private val context: Context) {
     fun loadChannelData(): Pair<Set<String>, Set<String>> {
         // Load joined channels
         val savedChannels = prefs.getStringSet("joined_channels", emptySet()) ?: emptySet()
-        
+
         // Load password protected channels
         val savedProtectedChannels = prefs.getStringSet("password_protected_channels", emptySet()) ?: emptySet()
-        
+
         // Load channel creators
         val creatorsJson = prefs.getString("channel_creators", "{}")
         try {
@@ -90,17 +90,17 @@ class DataManager(private val context: Context) {
         } catch (e: Exception) {
             // Ignore parsing errors
         }
-        
+
         // Initialize channel members for loaded channels
         savedChannels.forEach { channel ->
             if (!_channelMembers.containsKey(channel)) {
                 _channelMembers[channel] = mutableSetOf()
             }
         }
-        
+
         return Pair(savedChannels, savedProtectedChannels)
     }
-    
+
     fun saveChannelData(joinedChannels: Set<String>, passwordProtectedChannels: Set<String>) {
         prefs.edit().apply {
             putStringSet("joined_channels", joinedChannels)
@@ -109,42 +109,42 @@ class DataManager(private val context: Context) {
             apply()
         }
     }
-    
+
     fun addChannelCreator(channel: String, creatorID: String) {
         _channelCreators[channel] = creatorID
     }
-    
+
     fun removeChannelCreator(channel: String) {
         _channelCreators.remove(channel)
     }
-    
+
     fun isChannelCreator(channel: String, peerID: String): Boolean {
         return _channelCreators[channel] == peerID
     }
-    
+
     // MARK: - Channel Members Management
-    
+
     fun addChannelMember(channel: String, peerID: String) {
         if (!_channelMembers.containsKey(channel)) {
             _channelMembers[channel] = mutableSetOf()
         }
         _channelMembers[channel]?.add(peerID)
     }
-    
+
     fun removeChannelMember(channel: String, peerID: String) {
         _channelMembers[channel]?.remove(peerID)
     }
-    
+
     fun removeChannelMembers(channel: String) {
         _channelMembers.remove(channel)
     }
-    
+
     fun cleanupDisconnectedMembers(channel: String, connectedPeers: List<String>, myPeerID: String) {
         _channelMembers[channel]?.removeAll { memberID ->
             memberID != myPeerID && !connectedPeers.contains(memberID)
         }
     }
-    
+
     fun cleanupAllDisconnectedMembers(connectedPeers: List<String>, myPeerID: String) {
         _channelMembers.values.forEach { members ->
             members.removeAll { memberID ->
@@ -152,15 +152,15 @@ class DataManager(private val context: Context) {
             }
         }
     }
-    
+
     // MARK: - Favorites Management
-    
+
     fun loadFavorites() {
         val savedFavorites = prefs.getStringSet("favorites", emptySet()) ?: emptySet()
         _favoritePeers.addAll(savedFavorites)
         Log.d(TAG, "Loaded ${savedFavorites.size} favorite users from storage: $savedFavorites")
     }
-    
+
     fun saveFavorites() {
         prefs.edit().putStringSet("favorites", _favoritePeers).apply()
         Log.d(TAG, "Saved ${_favoritePeers.size} favorite users to storage: $_favoritePeers")
@@ -201,7 +201,7 @@ class DataManager(private val context: Context) {
         val savedBlockedUsers = prefs.getStringSet("blocked_users", emptySet()) ?: emptySet()
         _blockedUsers.addAll(savedBlockedUsers)
     }
-    
+
     fun saveBlockedUsers() {
         prefs.edit().putStringSet("blocked_users", _blockedUsers).apply()
     }
@@ -219,12 +219,12 @@ class DataManager(private val context: Context) {
     fun isUserBlocked(fingerprint: String): Boolean {
         return _blockedUsers.contains(fingerprint)
     }
-    
+
     // MARK: - Geohash Blocked Users Management
-    
+
     private val _geohashBlockedUsers = mutableSetOf<String>() // Set of nostr pubkey hex
     val geohashBlockedUsers: Set<String> get() = _geohashBlockedUsers.toSet()
-    
+
     fun loadGeohashBlockedUsers() {
         val savedGeohashBlockedUsers = prefs.getStringSet("geohash_blocked_users", emptySet()) ?: emptySet()
         _geohashBlockedUsers.addAll(savedGeohashBlockedUsers)

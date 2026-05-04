@@ -316,10 +316,6 @@ class ArtiTorManager private constructor() {
             OkHttpProvider.reset()
         } catch (_: Throwable) {
         }
-        try {
-            com.bitchat.android.nostr.NostrRelayManager.shared.resetAllConnections()
-        } catch (_: Throwable) {
-        }
     }
 
     private fun stopArtiInternal() {

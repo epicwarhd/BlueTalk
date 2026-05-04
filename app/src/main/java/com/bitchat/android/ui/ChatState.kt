@@ -3,13 +3,10 @@ package com.bitchat.android.ui
 import android.util.Log
 import com.bitchat.android.model.BitchatMessage
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -113,8 +110,6 @@ class ChatState(
     private val _peerDirect = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val peerDirect: StateFlow<Map<String, Boolean>> = _peerDirect.asStateFlow()
     
-    // peerIDToPublicKeyFingerprint REMOVED - fingerprints now handled centrally in PeerManager
-    
     // Navigation state
     private val _showAppInfo = MutableStateFlow<Boolean>(false)
     val showAppInfo: StateFlow<Boolean> = _showAppInfo.asStateFlow()
@@ -130,25 +125,6 @@ class ChatState(
 
     private val _showSecurityVerificationSheet = MutableStateFlow(false)
     val showSecurityVerificationSheet: StateFlow<Boolean> = _showSecurityVerificationSheet.asStateFlow()
-    
-    // Location channels state (for Nostr geohash features)
-    private val _selectedLocationChannel = MutableStateFlow<com.bitchat.android.geohash.ChannelID?>(com.bitchat.android.geohash.ChannelID.Mesh)
-    val selectedLocationChannel: StateFlow<com.bitchat.android.geohash.ChannelID?> = _selectedLocationChannel.asStateFlow()
-    
-    private val _isTeleported = MutableStateFlow<Boolean>(false)
-    val isTeleported: StateFlow<Boolean> = _isTeleported.asStateFlow()
-    
-    // Geohash people state (iOS-compatible)
-    private val _geohashPeople = MutableStateFlow<List<GeoPerson>>(emptyList())
-    val geohashPeople: StateFlow<List<GeoPerson>> = _geohashPeople.asStateFlow()
-    
-    private val _teleportedGeo = MutableStateFlow<Set<String>>(emptySet())
-    val teleportedGeo: StateFlow<Set<String>> = _teleportedGeo.asStateFlow()
-    
-    // Geohash participant counts reactive state (for real-time location channel counts)
-    private val _geohashParticipantCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val geohashParticipantCounts: StateFlow<Map<String, Int>> = _geohashParticipantCounts.asStateFlow()
-    
 
     val hasUnreadChannels: StateFlow<Boolean> = _unreadChannelMessages
         .map { unreadMap -> unreadMap.values.any { it > 0 } }
@@ -188,13 +164,9 @@ class ChatState(
     fun getPeerSessionStatesValue() = _peerSessionStates.value
     fun getPeerFingerprintsValue() = _peerFingerprints.value
     fun getShowAppInfoValue() = _showAppInfo.value
-    fun getGeohashPeopleValue() = _geohashPeople.value
 
     fun getShowMeshPeerListValue() = _showMeshPeerList.value
     fun getPrivateChatSheetPeerValue() = _privateChatSheetPeer.value
-
-    fun getTeleportedGeoValue() = _teleportedGeo.value
-    fun getGeohashParticipantCountsValue() = _geohashParticipantCounts.value
     
     // Setters for state updates
     fun setMessages(messages: List<BitchatMessage>) {
@@ -205,10 +177,6 @@ class ChatState(
         _connectedPeers.value = peers
     }
     
-    fun postTeleportedGeo(teleported: Set<String>) {
-        _teleportedGeo.value = teleported
-    }
-
     fun setNickname(nickname: String) {
         _nickname.value = nickname
     }
@@ -274,16 +242,7 @@ class ChatState(
     }
 
     fun setFavoritePeers(favorites: Set<String>) {
-        val currentValue = _favoritePeers.value
-        Log.d("ChatState", "setFavoritePeers called with ${favorites.size} favorites: $favorites")
-        Log.d("ChatState", "Current value: $currentValue")
-        Log.d("ChatState", "Values equal: ${currentValue == favorites}")
-        Log.d("ChatState", "Setting on thread: ${Thread.currentThread().name}")
-        
-        // Always set the value - even if equal, this ensures observers are triggered
         _favoritePeers.value = favorites
-        
-        Log.d("ChatState", "StateFlow value after set: ${_favoritePeers.value}")
     }
     
     fun setPeerSessionStates(states: Map<String, String>) {
@@ -316,26 +275,6 @@ class ChatState(
 
     fun setShowSecurityVerificationSheet(show: Boolean) {
         _showSecurityVerificationSheet.value = show
-    }
-    
-    fun setSelectedLocationChannel(channel: com.bitchat.android.geohash.ChannelID?) {
-        _selectedLocationChannel.value = channel
-    }
-    
-    fun setIsTeleported(teleported: Boolean) {
-        _isTeleported.value = teleported
-    }
-    
-    fun setGeohashPeople(people: List<GeoPerson>) {
-        _geohashPeople.value = people
-    }
-    
-    fun setTeleportedGeo(teleported: Set<String>) {
-        _teleportedGeo.value = teleported
-    }
-    
-    fun setGeohashParticipantCounts(counts: Map<String, Int>) {
-        _geohashParticipantCounts.value = counts
     }
 
     fun setShowMeshPeerList(show: Boolean) {

@@ -54,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -103,10 +102,9 @@ fun VerificationSheet(
     
     var selectedTab by remember { mutableStateOf(0) } // 0 = My Code, 1 = Scan
     val nickname by viewModel.nickname.collectAsStateWithLifecycle()
-    val npub = remember { viewModel.getCurrentNpub() }
 
-    val qrString = remember(nickname, npub) {
-        viewModel.buildMyQRString(nickname, npub)
+    val qrString = remember(nickname) {
+        viewModel.buildMyQRString(nickname)
     }
 
     BitchatBottomSheet(
