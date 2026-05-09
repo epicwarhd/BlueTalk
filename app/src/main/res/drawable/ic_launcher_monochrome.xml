@@ -3,27 +3,19 @@
     android:height="108dp"
     android:viewportWidth="100"
     android:viewportHeight="100">
-    <group android:translateX="1" android:translateY="0">
+    <group android:translateX="0" android:translateY="0">
         <!-- B -->
         <path
             android:fillColor="#000000"
             android:fillType="evenOdd"
-            android:pathData="M10,35 v30 h8 q6,0 6,-6 v-4 q0,-5 -5,-5 q5,0 5,-5 v-4 q0,-6 -6,-6 h-8 Z M14,39 h4 q2,0 2,2 v4 q0,2 -2,2 h-4 Z M14,51 h4 q2,0 2,2 v6 q0,2 -2,2 h-4 Z" />
+            android:pathData="M28,30 v40 h9 c4,0 6,-4 6,-9 v-4 c0,-4 -2,-7 -6,-7 c4,0 6,-3 6,-7 v-4 c0,-5 -2,-9 -6,-9 h-9 Z M31,33 h5 c2,0 3,2 3,5 v2 c0,3 -1,5 -3,5 h-5 v-12 Z M31,51 h5 c2,0 3,2 3,5 v2 c0,3 -1,5 -3,5 h-5 v-12 Z" />
         <!-- L -->
         <path
             android:fillColor="#000000"
-            android:pathData="M28,35 v30 h12 v-4 h-8 v-26 Z" />
-        <!-- U -->
-        <path
-            android:fillColor="#000000"
-            android:pathData="M45,35 v24 q0,6 6,6 s6,-2 6,-6 v-24 h-4 v24 q0,2 -2,2 s-2,-1 -2,-2 v-24 Z" />
-        <!-- E -->
-        <path
-            android:fillColor="#000000"
-            android:pathData="M68,35 v30 h12 v-4 h-8 v-9 h8 v-4 h-8 v-9 h8 v-4 Z" />
+            android:pathData="M46,30 v40 h10 v-3 h-7 v-37 Z" />
         <!-- T -->
         <path
             android:fillColor="#000000"
-            android:pathData="M85,39 v-4 h14 v4 h-5 v26 h-4 v-26 Z" />
+            android:pathData="M58,33 v-3 h14 v3 h-5.5 v37 h-3 v-37 Z" />
     </group>
 </vector>
