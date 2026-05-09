@@ -96,7 +96,7 @@
     <string name="pick_image">Chọn hình ảnh</string>
 
     <!-- Sheet giới thiệu -->
-    <string name="about_tagline">trò chuyện mesh phi tập trung với mã hóa đầu cuối</string>
+    <string name="about_tagline">Trò chuyện mesh phi tập trung với mã hóa đầu cuối</string>
     <string name="about_offline_mesh_title">Trò chuyện Mesh ngoại tuyến</string>
     <string name="about_offline_mesh_desc">Liên lạc trực tiếp qua Bluetooth LE mà không cần Internet hoặc máy chủ. Tin nhắn được chuyển tiếp qua các thiết bị gần để mở rộng phạm vi.</string>
     <string name="about_online_geohash_title">Kênh Geohash trực tuyến</string>
@@ -282,7 +282,7 @@
     <string name="setup_not_complete">Thiết lập chưa hoàn thành</string>
     <string name="try_again">Thử lại</string>
     <string name="privacy_protected">Quyền riêng tư của bạn được bảo vệ</string>
-    <string name="privacy_bullets">• không theo dõi hoặc thu thập dữ liệu\n• Bluetooth mesh chat hoàn toàn ngoại tuyến\n• Geohash chat sử dụng Internet</string>
+    <string name="privacy_bullets">• Không theo dõi hoặc thu thập dữ liệu\n• Bluetooth mesh chat hoàn toàn ngoại tuyến</string>
     <string name="permissions_header">Quyền</string>
     <string name="grant_permissions">Cấp quyền</string>
     <string name="location_tracking_warning">BlueTalk KHÔNG theo dõi vị trí của bạn</string>

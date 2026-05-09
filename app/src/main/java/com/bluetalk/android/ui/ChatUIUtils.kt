@@ -42,7 +42,7 @@ fun formatMessageAsAnnotatedString(
                  message.sender.startsWith("$currentUserNickname#")
     
     if (message.sender != "system") {
-        if (!isSelf) {
+        if (!isSelf && !message.isPrivate) {
             val isDark = colorScheme.background.red + colorScheme.background.green + colorScheme.background.blue < 1.5f
             val baseColor = getPeerColor(message, isDark)
             val (baseName, suffix) = splitSuffix(message.sender)
@@ -135,7 +135,7 @@ fun formatMessageHeaderAnnotatedString(
             message.sender.startsWith("$currentUserNickname#")
 
     if (message.sender != "system") {
-        if (!isSelf) {
+        if (!isSelf && !message.isPrivate) {
             val isDark = colorScheme.background.red + colorScheme.background.green + colorScheme.background.blue < 1.5f
             val baseColor = getPeerColor(message, isDark)
             val (baseName, suffix) = splitSuffix(message.sender)
