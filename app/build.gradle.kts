@@ -127,8 +127,7 @@ dependencies {
     // Bluetooth
     implementation(libs.nordic.ble)
 
-    // WebSocket
-    implementation(libs.okhttp)
+
 
     // Arti (Tor in Rust) Android bridge - custom build from latest source
     // Built with rustls, 16KB page size support, and onio//un service client

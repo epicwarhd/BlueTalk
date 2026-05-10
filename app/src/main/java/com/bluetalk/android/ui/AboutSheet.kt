@@ -28,9 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.bluetalk.android.R
 import com.bluetalk.android.core.ui.component.button.CloseButton
 import com.bluetalk.android.core.ui.component.sheet.BlueTalkBottomSheet
-import com.bluetalk.android.net.ArtiTorManager
-import com.bluetalk.android.net.TorMode
-import com.bluetalk.android.net.TorPreferenceManager
+
 import com.bluetalk.android.ui.theme.BlueTalkTheme
 import androidx.compose.foundation.BorderStroke
 
@@ -310,12 +308,8 @@ fun AboutSheet(
                     // Settings Section
                     item(key = "settings") {
                         var backgroundEnabled by remember { mutableStateOf(com.bluetalk.android.service.MeshServicePreferences.isBackgroundEnabled(true)) }
-                        val torMode = remember { mutableStateOf(TorPreferenceManager.get(context)) }
-                        val torProvider = remember { ArtiTorManager.getInstance() }
-                        val torStatus by torProvider.statusFlow.collectAsState()
-                        val torAvailable = remember { torProvider.isTorAvailable() }
 
-                        SettingsGroup(title = stringResource(R.string.about_network).uppercase()) {
+                        SettingsGroup(title = "NETWORK") {
                             Column {
                                 SettingsToggleRow(
                                     icon = Icons.Default.Bluetooth,
@@ -332,48 +326,6 @@ fun AboutSheet(
                                         }
                                     }
                                 )
-                                
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 56.dp),
-                                    color = colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                                
-                                SettingsToggleRow(
-                                    icon = Icons.Default.Security,
-                                    title = "Tor Network",
-                                    subtitle = stringResource(R.string.about_tor_route),
-                                    checked = torMode.value == TorMode.ON,
-                                    onCheckedChange = { enabled ->
-                                        if (torAvailable) {
-                                            torMode.value = if (enabled) TorMode.ON else TorMode.OFF
-                                            TorPreferenceManager.set(context, torMode.value)
-                                        }
-                                    },
-                                    enabled = torAvailable,
-                                    statusIndicator = if (torMode.value == TorMode.ON) {
-                                        {
-                                            val statusColor = when {
-                                                torStatus.running && torStatus.bootstrapPercent >= 100 -> colorScheme.primary
-                                                torStatus.running -> colorScheme.secondary
-                                                else -> colorScheme.error
-                                            }
-                                            Surface(
-                                                color = statusColor,
-                                                shape = CircleShape,
-                                                modifier = Modifier.size(10.dp)
-                                            ) {}
-                                        }
-                                    } else null
-                                )
-                                
-                                if (!torAvailable) {
-                                    Text(
-                                        text = stringResource(R.string.tor_not_available_in_this_build),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = colorScheme.error,
-                                        modifier = Modifier.padding(start = 56.dp, bottom = 12.dp)
-                                    )
-                                }
                             }
                         }
                     }

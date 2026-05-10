@@ -34,32 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * Header components for ChatScreen - mesh-only version
  */
 
-@Composable
-fun TorStatusDot(
-    modifier: Modifier = Modifier,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val torProvider = remember { com.bluetalk.android.net.ArtiTorManager.getInstance() }
-    val torStatus by torProvider.statusFlow.collectAsState()
-    
-    if (torStatus.mode != com.bluetalk.android.net.TorMode.OFF) {
-        val dotColor = when {
-            (torStatus.running && torStatus.bootstrapPercent < 100) -> colorScheme.secondary
-            torStatus.running -> colorScheme.primary
-            else -> colorScheme.error
-        }
-        Canvas(
-            modifier = modifier
-        ) {
-            val radius = size.minDimension / 2
-            drawCircle(
-                color = dotColor,
-                radius = radius,
-                center = Offset(size.width / 2, size.height / 2)
-            )
-        }
-    }
-}
+
 
 @Composable
 fun NoiseSessionIcon(
@@ -330,10 +305,7 @@ private fun MainHeader(
                 }
             }
 
-            TorStatusDot(
-                modifier = Modifier
-                    .size(10.dp)
-            )
+
             
             PeerCounter(
                 connectedPeers = connectedPeers.filter { it != viewModel.meshService.myPeerID },

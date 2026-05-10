@@ -2,7 +2,7 @@ package com.bluetalk.android
 
 import android.app.Application
 import com.bluetalk.android.ui.theme.ThemePreferenceManager
-import com.bluetalk.android.net.ArtiTorManager
+
 
 /**
  * Main application class for BlueTalk Android
@@ -12,11 +12,7 @@ class BlueTalkApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize Tor first so any early network goes over Tor
-        try {
-            val torProvider = ArtiTorManager.getInstance()
-            torProvider.init(this)
-        } catch (_: Exception){}
+
 
         // Initialize favorites persistence early
         try {

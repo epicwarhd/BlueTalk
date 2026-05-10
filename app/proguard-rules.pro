@@ -17,8 +17,7 @@
 -keep class com.bluetalk.android.nostr.** { *; }
 -keep class com.bluetalk.android.identity.** { *; }
 
-# Keep Tor implementation (always included)
--keep class com.bluetalk.android.net.RealTorProvider { *; }
+
 
 # Arti (Custom Tor implementation in Rust) ProGuard rules
 -keep class info.guardianproject.arti.** { *; }

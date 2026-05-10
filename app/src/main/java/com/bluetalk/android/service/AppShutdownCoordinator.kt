@@ -4,13 +4,12 @@ import android.app.Application
 import android.os.Process
 import androidx.core.app.NotificationManagerCompat
 import com.bluetalk.android.mesh.BluetoothMeshService
-import com.bluetalk.android.net.ArtiTorManager
-import com.bluetalk.android.net.TorMode
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -57,11 +56,7 @@ object AppShutdownCoordinator {
             // Stop mesh (best-effort)
             try { mesh?.stopServices() } catch (_: Exception) { }
 
-            // Stop Tor temporarily (do not change user setting)
-            val torProvider = ArtiTorManager.getInstance()
-            val torStop = async {
-                try { torProvider.applyMode(app, TorMode.OFF) } catch (_: Exception) { }
-            }
+
 
             // Clear AppState in-memory store
             try { com.bluetalk.android.services.AppStateStore.clear() } catch (_: Exception) { }
@@ -70,9 +65,8 @@ object AppShutdownCoordinator {
             try { stopForeground() } catch (_: Exception) { }
             try { notificationManager.cancel(10001) } catch (_: Exception) { }
 
-            // Wait up to 5 seconds for shutdown tasks
-            withTimeoutOrNull(5000) {
-                try { torStop.await() } catch (_: Exception) { }
+            // Wait up to 2 seconds for shutdown tasks
+            withTimeoutOrNull(2000) {
                 delay(100)
             }
 

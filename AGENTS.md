@@ -9,7 +9,7 @@ This document provides context, architectural insights, and development standard
 - **Language:** Kotlin (JVM Target 1.8)
 - **UI Framework:** Jetpack Compose (Material 3)
 - **Asynchronous:** Kotlin Coroutines & Flow
-- **Networking:** Bluetooth Low Energy (BLE), Tor (Arti Rust bridge), OkHttp
+- **Networking:** Bluetooth Low Energy (BLE)
 - **Architecture:** MVVM with Clean Architecture principles
 - **Build System:** Gradle (Kotlin DSL)
 
@@ -43,7 +43,7 @@ The application follows a clean architecture pattern, heavily modularized by fea
 ### Networking & Connectivity
 - **MeshForegroundService**: The critical component that keeps the mesh network alive. It manages the lifecycle of BLE scanning/advertising and other transport layers.
 - **BLE Stack**: Located in `mesh/` and `net/`, handles the intricacies of Android Bluetooth interactions.
-- **Tor/Arti**: Integrated via JNI (`jniLibs`) to provide anonymous internet routing where available.
+
 
 ## 4. Development Standards
 
